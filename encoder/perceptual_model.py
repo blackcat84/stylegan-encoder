@@ -11,6 +11,7 @@ def load_images(images_list, img_size):
     for img_path in images_list:
         img = image.load_img(img_path, target_size=(img_size, img_size))
         img = np.expand_dims(img, 0)
+        img = img.astype(np.float32)
         loaded_images.append(img)
     loaded_images = np.vstack(loaded_images)
     preprocessed_images = preprocess_input(loaded_images)

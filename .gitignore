@@ -1,0 +1,11 @@
+.idea
+aligned_images
+aligned_full
+generated_images
+latent_representations
+raw_images
+results
+*.pyc
+*.pkl
+.ipynb_checkpoints
+
