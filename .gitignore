@@ -1,9 +1,9 @@
 .idea
 aligned_images
-aligned_full
 generated_images
 latent_representations
 raw_images
+src_images
 results
 *.pyc
 *.pkl

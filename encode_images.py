@@ -4,25 +4,22 @@ import pickle
 from tqdm import tqdm
 import PIL.Image
 import numpy as np
-import dnnlib
 import dnnlib.tflib as tflib
-import config
 from encoder.generator_model import Generator
 from encoder.perceptual_model import PerceptualModel
+from models.ModelRetriever import ModelRetriever
 
-URL_FFHQ = 'https://drive.google.com/uc?id=1MEGjdvVpUsu1jB4zrXZN7Y4kBBOzizDQ'  # karras2019stylegan-ffhq-1024x1024.pkl
-FILE_FFHQ = "karras2019stylegan-ffhq-1024x1024.pkl"
 
 def split_to_batches(l, n):
     for i in range(0, len(l), n):
         yield l[i:i + n]
 
 
-def main():
+def do_parsing():
     parser = argparse.ArgumentParser(description='Find latent representation of reference images using perceptual loss')
-    parser.add_argument('src_dir', help='Directory with images for encoding')
-    parser.add_argument('generated_images_dir', help='Directory for storing generated images')
-    parser.add_argument('dlatent_dir', help='Directory for storing dlatent representations')
+    parser.add_argument('--src_dir', type=str, help='Directory with images for encoding')
+    parser.add_argument('--generated_images_dir', type=str, help='Root directory for storing generated images')
+    parser.add_argument('--dlatent_dir', type=str, help='Root directory for storing dlatent representations')
 
     # for now it's unclear if larger batch leads to better performance/quality
     parser.add_argument('--batch_size', default=1, help='Batch size for generator and perceptual model', type=int)
@@ -32,9 +29,16 @@ def main():
     parser.add_argument('--lr', default=1., help='Learning rate for perceptual model', type=float)
     parser.add_argument('--iterations', default=1000, help='Number of optimization steps for each batch', type=int)
 
+    parser.add_argument("--model_name", required=True, type=str, help="Pretrained model name")
+
     # Generator params
     parser.add_argument('--randomize_noise', default=False, help='Add noise to dlatents during optimization', type=bool)
-    args, other_args = parser.parse_known_args()
+    return parser.parse_args()
+
+def main():
+
+    args = do_parsing()
+    print(args)
 
     ref_images = [os.path.join(args.src_dir, x) for x in os.listdir(args.src_dir)]
     ref_images = list(filter(os.path.isfile, ref_images))
@@ -42,13 +46,19 @@ def main():
     if len(ref_images) == 0:
         raise Exception('%s is empty' % args.src_dir)
 
-    os.makedirs(args.generated_images_dir, exist_ok=True)
-    os.makedirs(args.dlatent_dir, exist_ok=True)
+    # Load pre-trained network, already on file system
+    model_filepath = ModelRetriever().get_model_filepath(args.model_name)
+
+    generated_images_dir = os.path.join(args.generated_images_dir, args.model_name)
+    dlatent_dir = os.path.join(args.dlatent_dir, args.model_name)
+
+    os.makedirs(generated_images_dir, exist_ok=True)
+    os.makedirs(dlatent_dir, exist_ok=True)
 
     # Initialize generator and perceptual model
     tflib.init_tf()
     # with dnnlib.util.open_url(URL_FFHQ, cache_dir=config.cache_dir) as f:
-    with open(FILE_FFHQ, "rb") as f:
+    with open(model_filepath, "rb") as f:
         generator_network, discriminator_network, Gs_network = pickle.load(f)
 
     generator = Generator(Gs_network, args.batch_size, randomize_noise=args.randomize_noise)
@@ -71,8 +81,8 @@ def main():
         generated_dlatents = generator.get_dlatents()
         for img_array, dlatent, img_name in zip(generated_images, generated_dlatents, names):
             img = PIL.Image.fromarray(img_array, 'RGB')
-            img.save(os.path.join(args.generated_images_dir, f'{img_name}.png'), 'PNG')
-            np.save(os.path.join(args.dlatent_dir, f'{img_name}.npy'), dlatent)
+            img.save(os.path.join(generated_images_dir, f'{img_name}.png'), 'PNG')
+            np.save(os.path.join(dlatent_dir, f'{img_name}.npy'), dlatent)
 
         generator.reset_dlatents()
 
