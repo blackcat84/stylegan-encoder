@@ -1,7 +1,10 @@
 .idea
+.floydexpt
+.floydignore
 aligned_images
 generated_images
 latent_representations
+moved_images
 raw_images
 src_images
 results
@@ -9,4 +12,3 @@ trained_models
 *.pyc
 *.pkl
 .ipynb_checkpoints
-
