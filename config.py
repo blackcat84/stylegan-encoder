@@ -10,9 +10,9 @@
 #----------------------------------------------------------------------------
 # Paths.
 
-result_dir = 'results'
-data_dir = 'datasets'
+result_dir = 'trained_models'
+data_dir = '/home/michele/DNN/datasets'
 cache_dir = 'cache'
-run_dir_ignore = ['results', 'datasets', 'cache']
+run_dir_ignore = [result_dir, data_dir, cache_dir]
 
 #----------------------------------------------------------------------------

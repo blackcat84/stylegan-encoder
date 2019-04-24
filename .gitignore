@@ -5,6 +5,7 @@ latent_representations
 raw_images
 src_images
 results
+trained_models
 *.pyc
 *.pkl
 .ipynb_checkpoints
