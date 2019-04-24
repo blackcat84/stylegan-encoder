@@ -1,6 +1,6 @@
 .idea
-.floydexpt
-.floydignore
+.git
+__pycache__
 aligned_images
 generated_images
 latent_representations
