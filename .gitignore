@@ -9,6 +9,9 @@ raw_images
 src_images
 results
 trained_models
+output
+data
 *.pyc
 *.pkl
 .ipynb_checkpoints
+__pycache__

@@ -21,9 +21,11 @@ from models.ModelRetriever import ModelRetriever
 def do_parsing():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
                                      description="Use pretrained models to generate random images")
-    parser.add_argument("--model_name", required=True, type=str, help="Pretrained model name")
-    parser.add_argument("--random_seed", required=False, type=int, default=42, help="Random seed")
-    parser.add_argument("--num_images", required=False, type=int, default=1000, help="Number of images to generate")
+    parser.add_argument("--file", required=True, type=str, help="Pretrained model file to load")
+    parser.add_argument("--output_dir", required=False, type=str, default='output/', help="Output directory")
+    parser.add_argument("--seed", required=False, type=int, default=42, help="Random seed for seeds generation")
+    parser.add_argument("--n_images", required=False, type=int, default=100, help="Number of images to generate")
+    parser.add_argument("--truncation_psi", required=False, type=float, default=0.7, help="Truncation psi")
     args = parser.parse_args()
     return args
 
@@ -38,9 +40,9 @@ def main():
     tflib.init_tf()
 
     # Load pre-trained network, already on file system
-    model_filepath = ModelRetriever().get_model_filepath(args.model_name)
+    ###model_filepath = ModelRetriever().get_model_filepath(args.model_name)
 
-    with open(model_filepath, "rb") as f:
+    with open(args.file, "rb") as f:
         _G, _D, Gs = pickle.load(f)
 
         # _G = Instantaneous snapshot of the generator. Mainly useful for resuming a previous training run.
@@ -51,17 +53,18 @@ def main():
     Gs.print_layers()
 
     # Pick latent vector.
-    seed = args.random_seed
+    seed = args.seed
     rnd = np.random.RandomState(seed)
-    latents = rnd.randn(args.num_images, Gs.input_shape[1])
+    latents = rnd.randn(args.n_images, Gs.input_shape[1])
 
-    output_dir = os.path.join(config.result_dir, args.model_name, "seed_" + str(seed))
+    ###output_dir = os.path.join(config.result_dir, args.model_name, "seed_" + str(seed))
+    output_dir = args.output_dir
 
     for index, latent in tqdm(enumerate(latents), desc="image"):
 
         # Generate image.
         fmt = dict(func=tflib.convert_images_to_uint8, nchw_to_nhwc=True)
-        images = Gs.run(np.expand_dims(latent, axis=0), None, truncation_psi=0.7, randomize_noise=True, output_transform=fmt)
+        images = Gs.run(np.expand_dims(latent, axis=0), None, truncation_psi=args.truncation_psi, randomize_noise=True, output_transform=fmt)
 
         # Save image.
         os.makedirs(output_dir, exist_ok=True)

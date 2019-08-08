@@ -10,15 +10,37 @@
 import copy
 import dnnlib
 from dnnlib import EasyDict
-
+import argparse
 import config
 from metrics import metric_base
+
+#----------------------------------------------------------------------------
+# Parsing function. We move here some of the options hard-coded below (after if 1:)
+def do_parsing():
+
+    parser = argparse.ArgumentParser(description="General training options")
+
+    parser.add_argument("--model_name", required=False, type=str, default="sgan", help="Name of model")
+    parser.add_argument("--data", required=True, type=str, help="Path of dataset (e.g. if datasets is selected as data_dir in config and inside we want to process datasets/x/y then this entry should be x/y)")
+    parser.add_argument("--total_kimg", required=True, type=int, help="Thousands of images to process before stopping training (length of training)")
+    parser.add_argument("--init_res", required=False, type=int, default=8, help="Image resolution used at the beginning")
+    parser.add_argument("--nsteps_image_snapshot", required=False, type=int, default=1, help="How often to export image snapshots")
+    parser.add_argument("--nsteps_network_snapshot", required=False, type=int, default=10, help="How often to export network snapshots")
+    parser.add_argument("--resume_run_id", required=False, type=str, default=None, help="Run ID or network pkl to resume training from (e.g. 00000-sgan-custom-1gpu), default None = start from scratch")
+    parser.add_argument("--resume_snapshot", required=False, type=int, default=None, help="Snapshot index to resume training from (e.g. 1283), default None = autodetect")
+
+    args = parser.parse_args()
+    return args
 
 #----------------------------------------------------------------------------
 # Official training configs for StyleGAN, targeted mainly for FFHQ.
 
 if 1:
-    desc          = 'sgan'                                                                 # Description string included in result subdir name.
+
+    # Load params
+    args = do_parsing()
+    # Model name
+    desc          = args.model_name                                                            # Description string included in result subdir name.
     train         = EasyDict(run_func_name='training.training_loop.training_loop')         # Options for training loop.
     G             = EasyDict(func_name='training.networks_stylegan.G_style')               # Options for generator network.
     D             = EasyDict(func_name='training.networks_stylegan.D_basic')               # Options for discriminator network.
@@ -39,7 +61,7 @@ if 1:
     #desc += '-bedroom';  dataset = EasyDict(tfrecord_dir='lsun-bedroom-full'); train.mirror_augment = False
     #desc += '-car';      dataset = EasyDict(tfrecord_dir='lsun-car-512x384');  train.mirror_augment = False
     #desc += '-cat';      dataset = EasyDict(tfrecord_dir='lsun-cat-full');     train.mirror_augment = False
-    desc += '-custom'; dataset = EasyDict(tfrecord_dir='sleeping_people_from_google/lmdb_256');     train.mirror_augment = False
+    desc += '-custom'; dataset = EasyDict(tfrecord_dir=args.data);     train.mirror_augment = False
 
     # Number of GPUs.
     desc += '-1gpu'; submit_config.num_gpus = 1; sched.minibatch_base = 4; sched.minibatch_dict = {4: 128, 8: 128, 16: 128, 32: 64, 64: 32, 128: 16, 256: 8, 512: 4}
@@ -48,10 +70,14 @@ if 1:
     #desc += '-8gpu'; submit_config.num_gpus = 8; sched.minibatch_base = 32; sched.minibatch_dict = {4: 512, 8: 256, 16: 128, 32: 64, 64: 32}
 
     # Default options.
-    train.total_kimg = 25000
-    sched.lod_initial_resolution = 8
+    train.total_kimg = args.total_kimg
+    sched.lod_initial_resolution = args.init_res
     sched.G_lrate_dict = {128: 0.0015, 256: 0.002, 512: 0.003, 1024: 0.003}
     sched.D_lrate_dict = EasyDict(sched.G_lrate_dict)
+    train.image_snapshot_ticks = args.nsteps_image_snapshot
+    train.network_snapshot_ticks = args.nsteps_network_snapshot
+    train.resume_run_id = args.resume_run_id
+    train.resume_snapshot = args.resume_snapshot
 
     # WGAN-GP loss for CelebA-HQ.
     #desc += '-wgangp'; G_loss = EasyDict(func_name='training.loss.G_wgan'); D_loss = EasyDict(func_name='training.loss.D_wgan_gp'); sched.G_lrate_dict = {k: min(v, 0.002) for k, v in sched.G_lrate_dict.items()}; sched.D_lrate_dict = EasyDict(sched.G_lrate_dict)
