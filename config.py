@@ -11,7 +11,7 @@
 # Paths.
 
 result_dir = 'output'
-data_dir = '../stylegan/datasets'
+data_dir = 'dataset'
 cache_dir = 'output/cache'
 run_dir_ignore = [result_dir, data_dir, cache_dir]
 
